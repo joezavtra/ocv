@@ -18,37 +18,48 @@ int iHighS = 255;
 
 int iLowV = 60;
 int iHighV = 255;
-Mat imgOriginal;
+Mat imgO;
 
-void ResetBorders() {
-	iLowH = 170;
-	iHighH = 179;
+VideoCapture cap(0); //capture the video from webcam
 
-	iLowS = 150;
-	iHighS = 255;
+void SetTrackBars()
+{
+	setTrackbarPos("LowH", "Control", iLowH); //Hue (0 - 179)
+	setTrackbarPos("HighH", "Control", iHighH);
 
-	iLowV = 60;
-	iHighV = 255;
+	setTrackbarPos("LowS", "Control", iLowS); //Saturation (0 - 255)
+	setTrackbarPos("HighS", "Control", iHighS);
+
+	setTrackbarPos("LowV", "Control", iLowV); //Value (0 - 255)
+	setTrackbarPos("HighV", "Control", iHighV);
+
 }
 
-void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
-//	if (event == EVENT_LBUTTONDOWN) {
-//		cout << "Left button of the mouse is clicked - position (" << x << ", "
-//				<< y << ")" << endl;
-//	} else if (event == EVENT_RBUTTONDOWN) {
-//		cout << "Right button of the mouse is clicked - position (" << x << ", "
-//				<< y << ")" << endl;
-//	} else if (event == EVENT_MBUTTONDOWN) {
-//		cout << "Middle button of the mouse is clicked - position (" << x
-//				<< ", " << y << ")" << endl;
-//	} else
-	if (event == EVENT_MOUSEMOVE && flags == EVENT_FLAG_LBUTTON) {
-		Mat imgTmp;
-		if (x <= 0 || y <= 0)
-			return;
+void ResetBorders()
+{
+	iLowH = 255;
+	iHighH = 0;
 
-		blur(imgOriginal, imgTmp, Size(5, 5), Point(-1, -1));
+	iLowS = 255;
+	iHighS = 0;
+
+	iLowV = 255;
+	iHighV = 0;
+	SetTrackBars();
+}
+
+void CallBackFunc(int event, int x, int y, int flags, void* userdata)
+{
+	if (event == EVENT_LBUTTONDOWN
+			|| (event == EVENT_MOUSEMOVE && flags == EVENT_FLAG_LBUTTON)) {
+		cap.read(imgO);
+		Mat imgTmp;
+		cvtColor(imgO, imgTmp, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+		blur(imgTmp, imgTmp, Size(3, 3));
 		cv::Vec3b p = imgTmp.at<cv::Vec3b>(y, x); // read pixel (0,0) (make copy)
+
+		cout << "Point: " << p << "\n";
 
 		iLowH = std::min(iLowH, int(p[0]));
 		iHighH = std::max(iHighH, int(p[0]));
@@ -58,37 +69,31 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata) {
 
 		iLowV = std::min(iLowV, int(p[2]));
 		iHighV = std::max(iHighV, int(p[2]));
+
+		SetTrackBars();
 	}
 }
 
-int main(int argc, char** argv) {
-	VideoCapture cap(0); //capture the video from webcam
-
+int main(int argc, char** argv)
+{
 	if (!cap.isOpened())  // if not success, exit program
 	{
-		cout << "Cannot open the web cam" << endl;
+		cout << "Cannot open the web cam" << "\n";
 		return -1;
 	}
 
-	namedWindow("Control", CV_WINDOW_AUTOSIZE); //create a window called "Control"
-
-	//Create trackbars in "Control" window
-	createTrackbar("LowH", "Control", &iLowH, 255); //Hue (0 - 179)
+	ResetBorders();
+	namedWindow("Control", CV_WINDOW_AUTOSIZE);
+	createTrackbar("LowH", "Control", &iLowH, 255);
 	createTrackbar("HighH", "Control", &iHighH, 255);
-
-	createTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
+	createTrackbar("LowS", "Control", &iLowS, 255);
 	createTrackbar("HighS", "Control", &iHighS, 255);
-
-	createTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
+	createTrackbar("LowV", "Control", &iLowV, 255);
 	createTrackbar("HighV", "Control", &iHighV, 255);
 
-	int iLastX = -1;
-	int iLastY = -1;
-
-	//Capture a temporary image from the camera
 	Mat imgTmp;
 	cap.read(imgTmp);
-	resize(imgTmp, imgTmp, Size(), 0.5, 0.5);
+//	resize(imgTmp, imgTmp, Size(), 0.5, 0.5);
 
 	int fontFace = FONT_HERSHEY_PLAIN;
 	double fontScale = 1;
@@ -99,67 +104,58 @@ int main(int argc, char** argv) {
 	double sec;
 	double fps;
 	char fps_str[100] = "";
+	char log_str[100] = "";
 
-	//Create a black image with the size as the camera output
-	Mat imgLines = Mat::zeros(imgTmp.size(), CV_8UC3);
-
+//	Mat imgLines = Mat::zeros(imgTmp.size(), CV_8UC3);
 	while (true) {
 		if (fps_cnt == 0) {
 			time(&start);
 		}
 
-		bool bSuccess = cap.read(imgOriginal); // read a new frame from video
-		resize(imgOriginal, imgOriginal, Size(), 0.5, 0.5);
-
-		if (!bSuccess) //if not success, break loop
+		bool bSuccess = cap.read(imgO);
+		flip(imgO, imgO, 1);
+		if (!bSuccess)
 		{
 			cout << "Cannot read a frame from video stream" << endl;
 			break;
 		}
 
 		Mat imgHSV;
+		Mat imgT;
 
-		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-
-		Mat imgThresholded;
-
+		cvtColor(imgO, imgHSV, COLOR_BGR2HSV);
 		inRange(imgHSV, Scalar(iLowH, iLowS, iLowV),
-				Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-//
-//		//morphological opening (removes small objects from the foreground)
-//		erode(imgThresholded, imgThresholded,
-//				getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-//		dilate(imgThresholded, imgThresholded,
-//				getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-//
+				Scalar(iHighH, iHighS, iHighV), imgT); //Threshold the image
+
+		//morphological opening (removes small objects from the foreground)
+		erode(imgT, imgT, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		dilate(imgT, imgT, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 //		//morphological closing (removes small holes from the foreground)
-//		dilate(imgThresholded, imgThresholded,
-//				getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-//		erode(imgThresholded, imgThresholded,
-//				getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		dilate(imgT, imgT, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		erode(imgT, imgT, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 
-		//Calculate the moments of the thresholded image
-		Moments oMoments = moments(imgThresholded);
+		vector<vector<Point> > contours;
+		vector<Vec4i> hierarchy;
+		findContours(imgT, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
-		double dM01 = oMoments.m01;
-		double dM10 = oMoments.m10;
-		double dArea = oMoments.m00;
+		if (hierarchy.size() > 0) {
+			Mat imgTmp;
+			blur(imgO, imgTmp, Size(2, 2));
 
-		// if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero
-		if (dArea > 10000) {
-			//calculate the position of the ball
-			int posX = dM10 / dArea;
-			int posY = dM01 / dArea;
+			int idx = 0;
+			for (; idx >= 0; idx = hierarchy[idx][0]) {
 
-			if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0) {
-				medianBlur(imgLines, imgLines, 3);
-				//Draw a red line from the previous point to the current point
-				line(imgLines, Point(posX, posY), Point(iLastX, iLastY),
-						Scalar(0, 0, 255), 2);
+//				Moments m = moments(contours[idx]);
+//				int x = (int) (m.m10 / m.m00); //contours[idx][0].x
+//				int y = (int) (m.m01 / m.m00); //contours[idx][0].y
+
+//				cv::Vec3b p = imgTmp.at<cv::Vec3b>(y,x);
+
+//				cout << idx << " > " <<  contours[idx] << "\n";
+				Scalar color(rand() & 255, rand() & 255, rand() & 255);
+				drawContours(imgO, contours, idx, color, -1, 8,
+						hierarchy);
 			}
-
-			iLastX = posX;
-			iLastY = posY;
 		}
 
 		time(&end);
@@ -167,35 +163,53 @@ int main(int argc, char** argv) {
 		sec = difftime(end, start);
 		fps = fps_cnt / sec;
 		if (sec >= .5) {
-			sprintf(fps_str, "FPS: %.2f [%dX%d]", fps, imgThresholded.cols,
-					imgThresholded.rows);
+			sprintf(fps_str, "FPS: %.2f [%dX%d]", fps, imgT.cols, imgT.rows);
 			fps_cnt = 0;
 		}
 		// overflow protection
 		if (fps_cnt == (INT_MAX - 1000))
 			fps_cnt = 0;
 
-		// then put the text itself
-		putText(imgThresholded, String(fps_str), Point(20, 20), fontFace,
-				fontScale, Scalar::all(255), thickness, 8);
+//		resize(imgO, imgO, Size(), 1.2, 1.2);
+		resize(imgT, imgT, Size(), 0.2, 0.2);
 
-		imshow("Thresholded Image", imgThresholded); //show the thresholded image
+		cvtColor(imgT, imgT, COLOR_GRAY2BGR); //Convert the captured frame from BGR to HSV
 
-		imgOriginal = imgOriginal + imgLines;
-		blur(imgOriginal, imgOriginal, Size(5, 5));
-		imshow("Original", imgOriginal); //show the original image
+		imgT.copyTo(
+				imgO(
+						Rect(imgO.cols - imgT.cols, imgO.rows - imgT.rows,
+								imgT.cols, imgT.rows)));
+
+		putText(imgO, String(fps_str), Point(20, 20), fontFace, fontScale,
+				Scalar(50, 50, 50), thickness + 2, 8);
+		putText(imgO, String(fps_str), Point(20, 20), fontFace, fontScale,
+				Scalar(100, 255, 100), thickness, 8);
+
+		sprintf(log_str, "HUE: %d - %d", iLowH, iHighH);
+		putText(imgO, String(log_str), Point(20, 35), fontFace, fontScale,
+				Scalar(100, 255, 100), thickness, 8);
+		sprintf(log_str, "SAT: %d - %d", iLowS, iHighS);
+		putText(imgO, String(log_str), Point(20, 50), fontFace, fontScale,
+				Scalar(100, 255, 100), thickness, 8);
+		sprintf(log_str, "VAL: %d - %d", iLowV, iHighV);
+		putText(imgO, String(log_str), Point(20, 65), fontFace, fontScale,
+				Scalar(100, 255, 100), thickness, 8);
+
+//		imgOriginal = imgOriginal + imgLines;
+		imshow("Original", imgO); //show the original image
 
 		//set the callback function for any mouse event
 		setMouseCallback("Original", CallBackFunc, NULL);
 
-		if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-				{
-			cout << "esc key is pressed by user" << endl;
-			break;
-		}
-		if (waitKey(30) == 32) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-				{
-			ResetBorders();
+		int key = waitKey(1);
+		switch (key) {
+			case 27: {
+				cout << "esc key is pressed by user" << endl;
+				return 0;
+			}
+			case 32:
+				ResetBorders();
+				break;
 		}
 	}
 
