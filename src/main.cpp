@@ -24,10 +24,6 @@ int main(int argc, char** argv)
 	gui.start();
 }
 /*
-
-
-
-
 		putText(imgO, String(fps_str), Point(20, 20), fontFace, fontScale,
 				Scalar(50, 50, 50), thickness + 2, 8);
 		putText(imgO, String(fps_str), Point(20, 20), fontFace, fontScale,
@@ -42,23 +38,4 @@ int main(int argc, char** argv)
 		sprintf(log_str, "VAL: %d - %d", iLowV, iHighV);
 		putText(imgO, String(log_str), Point(20, 65), fontFace, fontScale,
 				Scalar(100, 255, 100), thickness, 8);
-
-
-		//set the callback function for any mouse event
-		setMouseCallback("Original", CallBackFunc, NULL);
-
-		int key = waitKey(1);
-		switch (key) {
-			case 27: {
-				cout << "esc key is pressed by user" << endl;
-				return 0;
-			}
-			case 32:
-				ResetBorders();
-				break;
-		}
-	}
-
-	return 0;
-}
 */

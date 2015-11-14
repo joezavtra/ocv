@@ -27,20 +27,28 @@ char log_str[100] = "";
 
 gui::gui(int device)
 {
-	camera.open(device);
+//	while ( device < 100 ) {
+		camera.open(device);
 
-	if (!camera.isOpened())  // if not success, exit program
-	{
-		std::cerr << "Cannot open the web cam\n";
-		exit(-1);
-		//		return -1;
+		if (!camera.isOpened())  // if not success, exit program
+		{
+			std::cerr << "Cannot open the web cam" << device << "\n";
+			exit(-1);
+			//		return -1;
+		}
+//	}
+	for ( int i=-100; i<100; i++){
+		std::cout << "camera_get(" << i << "): " << camera.get(i) << "\n";
 	}
-
+	exp = camera.get(CV_CAP_PROP_EXPOSURE);
+	std::cout << "exp: " << exp << "\n";
 	resIn.x = camera.get(CV_CAP_PROP_FRAME_WIDTH);
 	resIn.y = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
 
 	imgOver = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
-	imgOut  = cv::Mat::zeros(cv::Size((int)resIn.x*(1+qThumb), (int)resIn.y*(1+qThumb)), CV_8UC3);
+	imgOut = cv::Mat::zeros(
+			cv::Size((int) resIn.x * (1 + qThumb),
+					(int) resIn.y * (1 + 0 * qThumb)), CV_8UC3);
 
 	std::cout << "Camera " << resIn.x << "x" << resIn.y << " opened\n";
 
@@ -62,7 +70,7 @@ void gui::start()
 
 		getFrame();
 		tresholdFrame();
-//		processFrame();
+		processFrame();
 
 //		time(&end);
 //		fps_cnt++;
@@ -81,30 +89,19 @@ void gui::start()
 
 void gui::show()
 {
-	camera.set(CV_CAP_PROP_AUTO_EXPOSURE, -1);
-	std::cout << "CV_CAP_PROP_MODE" << camera.get(CV_CAP_PROP_MODE) << "\n";
-	std::cout << "CV_CAP_PROP_BRIGHTNESS" << camera.get(CV_CAP_PROP_BRIGHTNESS) << "\n";
-	std::cout << "CV_CAP_PROP_CONTRAST" << camera.get(CV_CAP_PROP_CONTRAST) << "\n";
-	std::cout << "CV_CAP_PROP_EXPOSURE" << camera.get(CV_CAP_PROP_EXPOSURE) << "\n\n";
-
-
 	cv::Mat imgTmp = imgIn;
-//	bilateralFilter ( imgIn, imgTmp, 4, 40, 40 );
-	imgTmp = imgOver+imgTmp;
+	imgTmp = imgOver + imgTmp;
 	imgTmp.copyTo(imgOut(cv::Rect(0, 0, imgIn.cols, imgIn.rows)));
 
 	resize(imgTres, imgTmp, cv::Size(), qThumb, qThumb);
 	cv::cvtColor(imgTmp, imgTmp, cv::COLOR_GRAY2BGR);
 	imgTmp.copyTo(
 			imgOut(
-					cv::Rect(imgOut.cols - imgTmp.cols,
-							imgOut.rows - imgTmp.rows, imgTmp.cols,
+					cv::Rect(imgOut.cols - imgTmp.cols, 0, imgTmp.cols,
 							imgTmp.rows)));
 
 	resize(imgOut, imgTmp, cv::Size(), qGlob, qGlob);
 	imshow("Main", imgTmp);
-
-	cv::setMouseCallback("Main", mouseCB, this);
 
 	int key = cv::waitKey(1);
 	switch (key) {
@@ -127,7 +124,7 @@ void gui::processFrame()
 
 	if (hierarchy.size() > 0) {
 		cv::Mat imgTmp;
-		cv::blur(imgIn, imgTmp, cv::Size(2, 2));
+//		cv::blur(imgIn, imgTmp, cv::Size(2, 2));
 
 		int idx = 0;
 		for (; idx >= 0; idx = hierarchy[idx][0]) {
@@ -140,7 +137,7 @@ void gui::processFrame()
 
 //				cout << idx << " > " <<  contours[idx] << "\n";
 			cv::Scalar color(rand() & 255, rand() & 255, rand() & 255);
-			cv::drawContours(imgIn, contours, idx, color, -1, 8, hierarchy);
+			cv::drawContours(imgIn, contours, idx, color, 1, 8, hierarchy);
 		}
 	}
 }
@@ -149,6 +146,7 @@ void gui::tresholdFrame()
 {
 	cv::Mat imgHSV;
 
+//	bilateralFilter(imgHSV, imgHSV, 5, 80, 80);
 	cv::cvtColor(imgIn, imgHSV, cv::COLOR_BGR2HSV);
 	cv::inRange(imgHSV, cv::Scalar(iLowH, iLowS, iLowV),
 			cv::Scalar(iHighH, iHighS, iHighV), imgTres);
@@ -165,6 +163,10 @@ void gui::tresholdFrame()
 
 void gui::getFrame()
 {
+	camera.set(CV_CAP_PROP_EXPOSURE,exp/100);
+
+	std::cout << exp/100 << "\n";
+
 	bool bSuccess = camera.read(imgIn);
 	flip(imgIn, imgIn, 1);
 	if (!bSuccess) {
@@ -176,15 +178,18 @@ void gui::getFrame()
 
 void gui::createWindows()
 {
-//	cv::namedWindow("Main", CV_WINDOW_AUTOSIZE);
-	cv::namedWindow("Control", CV_WINDOW_AUTOSIZE);
+	cv::namedWindow("Main", CV_WINDOW_AUTOSIZE | CV_GUI_EXPANDED);
+//	cv::namedWindow("Control", CV_WINDOW_AUTOSIZE);
 
-	cv::createTrackbar("LowH", "Control", &iLowH, 255);
-	cv::createTrackbar("HighH", "Control", &iHighH, 255);
-	cv::createTrackbar("LowS", "Control", &iLowS, 255);
-	cv::createTrackbar("HighS", "Control", &iHighS, 255);
-	cv::createTrackbar("LowV", "Control", &iLowV, 255);
-	cv::createTrackbar("HighV", "Control", &iHighV, 255);
+	cv::setMouseCallback("Main", mouseCB, this);
+
+	cv::createTrackbar("LowH", "Main", &iLowH, 255, NULL);
+	cv::createTrackbar("HighH", "Main", &iHighH, 255, NULL);
+	cv::createTrackbar("LowS", "Main", &iLowS, 255, NULL);
+	cv::createTrackbar("HighS", "Main", &iHighS, 255, NULL);
+	cv::createTrackbar("LowV", "Main", &iLowV, 255, NULL);
+	cv::createTrackbar("HighV", "Main", &iHighV, 255, NULL);
+	cv::createTrackbar("exp", "Main", &exp, 100, NULL);
 }
 
 void gui::resetBorders()
@@ -202,14 +207,14 @@ void gui::resetBorders()
 
 void gui::setTrackBars()
 {
-	cv::setTrackbarPos("LowH", "Control", iLowH); //Hue (0 - 179)
-	cv::setTrackbarPos("HighH", "Control", iHighH);
+	cv::setTrackbarPos("LowH", "Main", iLowH); //Hue (0 - 179)
+	cv::setTrackbarPos("HighH", "Main", iHighH);
 
-	cv::setTrackbarPos("LowS", "Control", iLowS); //Saturation (0 - 255)
-	cv::setTrackbarPos("HighS", "Control", iHighS);
+	cv::setTrackbarPos("LowS", "Main", iLowS); //Saturation (0 - 255)
+	cv::setTrackbarPos("HighS", "Main", iHighS);
 
-	cv::setTrackbarPos("LowV", "Control", iLowV); //Value (0 - 255)
-	cv::setTrackbarPos("HighV", "Control", iHighV);
+	cv::setTrackbarPos("LowV", "Main", iLowV); //Value (0 - 255)
+	cv::setTrackbarPos("HighV", "Main", iHighV);
 
 }
 
@@ -223,31 +228,36 @@ void gui::mouseCB(int event, int x, int y, int flags)
 {
 	imgOver = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
 
-	if (event == cv::EVENT_MOUSEMOVE && x<=resIn.x*qGlob && y<=resIn.y*qGlob) {
+	if (event == cv::EVENT_MOUSEMOVE && x <= resIn.x * qGlob
+			&& y <= resIn.y * qGlob) {
 		cv::Mat imgTmp;
 		cv::blur(imgIn, imgTmp, cv::Size(2, 2));
 
-		cv::Vec3b p = imgTmp.at<cv::Vec3b>((int)y/qGlob, (int)x/qGlob);
-		cv::circle(imgOver, cv::Point((int)x/qGlob, (int)y/qGlob), 15, (cv::Scalar) p, -1);
-	}
-	else if (event == cv::EVENT_LBUTTONDOWN
+		cv::Vec3b p = imgTmp.at<cv::Vec3b>((int) y / qGlob, (int) x / qGlob);
+		cv::circle(imgOver, cv::Point((int) x / qGlob, (int) y / qGlob), 15,
+				(cv::Scalar) p, -1);
+	} else if (event == cv::EVENT_LBUTTONDOWN
 			|| (event == cv::EVENT_MOUSEMOVE && flags == cv::EVENT_FLAG_LBUTTON)) {
 		camera.read(imgIn);
 
 		cv::Mat imgTmp;
-		cv::blur(imgIn, imgTmp, cv::Size(2, 2));
+//		cv::blur(imgIn, imgTmp, cv::Size(3, 3));
+		bilateralFilter(imgIn, imgTmp, 5, 80, 80);
 
 		cv::cvtColor(imgTmp, imgTmp, cv::COLOR_BGR2HSV);
-		cv::Vec3b p = imgTmp.at<cv::Vec3b>((int)y/qGlob, (int)x/qGlob);
+		cv::Vec3b p = imgTmp.at<cv::Vec3b>((int) y / qGlob, (int) x / qGlob);
 
-		iLowH = std::min(iLowH, int(p[0]));
-		iHighH = std::max(iHighH, int(p[0]));
-
-		iLowS = std::min(iLowS, int(p[1]));
-		iHighS = std::max(iHighS, int(p[1]));
-
-		iLowV = std::min(iLowV, int(p[2]));
-		iHighV = std::max(iHighV, int(p[2]));
+		int* funnel[] = { &iLowH, &iHighH, &iLowS, &iHighS, &iLowV, &iHighV };
+		for (int i = 0; i < 3; ++i) {
+			*funnel[i * 2] = std::max(0, p[i] - 30);
+			*funnel[i * 2 + 1] = std::min(255, p[i] + 30);
+		}
+//		iLowH = std::min(iLowH, int(p[0]));
+//		iHighH = std::max(iHighH, int(p[0]));
+//		iLowS = std::min(iLowS, int(p[1]));
+//		iHighS = std::max(iHighS, int(p[1]));
+//		iLowV = std::min(iLowV, int(p[2]));
+//		iHighV = std::max(iHighV, int(p[2]));
 
 		setTrackBars();
 	}

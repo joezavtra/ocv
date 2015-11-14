@@ -19,6 +19,7 @@ public:
 	mouseCB(int event, int x, int y, int flags, void* userdata);
 	void
 	mouseCB(int event, int x, int y, int flags);
+//	std:vector<string> logs;
 
 private:
 	void
@@ -46,6 +47,8 @@ private:
 	int iLowV;
 	int iHighV;
 
+	int exp;
+
 	cv::VideoCapture camera;
 
 	cv::Mat imgIn;
@@ -57,8 +60,8 @@ private:
 		int x; int y;
 	} resIn;
 
-	static const double qThumb = 0.2;
-	static const double qGlob = 0.7;
+	static const double qThumb = 1;
+	static const double qGlob = 0.5;
 };
 
 #endif /* SRC_GUI_HPP_ */
