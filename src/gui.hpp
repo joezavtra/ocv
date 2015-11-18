@@ -8,6 +8,8 @@
 #ifndef SRC_GUI_HPP_
 #define SRC_GUI_HPP_
 
+#include <map>
+
 class gui {
 public:
 	gui(int device);
@@ -19,9 +21,14 @@ public:
 	mouseCB(int event, int x, int y, int flags, void* userdata);
 	void
 	mouseCB(int event, int x, int y, int flags);
-//	std:vector<string> logs;
 
 private:
+	void
+	log(char* str);
+	void
+	log(char* str, std::string key);
+	void
+	printLog();
 	void
 	show();
 	void
@@ -47,7 +54,7 @@ private:
 	int iLowV;
 	int iHighV;
 
-	int exp;
+	std::map<std::string, char *> logs;
 
 	cv::VideoCapture camera;
 
