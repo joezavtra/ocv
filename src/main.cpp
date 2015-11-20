@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 {
 	gui gui(0);
 
-	gui.start();
+	gui.loop();
 }
 /*
 		putText(imgO, String(fps_str), Point(20, 20), fontFace, fontScale,

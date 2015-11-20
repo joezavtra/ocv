@@ -5,11 +5,12 @@
  *      Author: zelenov
  */
 
-#include <time.h> // to calculate time needed
-#include <limits.h> // to get INT_MAX, to protect against overflow
+#include <limits.h>
 #include <iostream>
-#include <algorithm>    // std::max
-#include <vector>    // std::max
+#include <algorithm>
+#include <vector>
+#include <string>
+
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/cvstd.hpp"
@@ -19,30 +20,33 @@ int fontFace = cv::FONT_HERSHEY_PLAIN;
 double fontScale = 2;
 int thickness = 1;
 
-time_t second_start, second_end;
-int fps_cnt = 0;
-double sec;
-double fps;
-char fps_str[100] = "";
-char log_str[100] = "";
+
+
+std::map<std::string, gui::hueInterval> hues = {
+		{ "red", {-10,10} },
+		{ "yellow", {10,30} },
+		{ "green", {50,100} },
+		{ "cyan", {90,110} },
+		{ "blue", {110,140} },
+		{ "magenta", {140,160} }
+//		{ "red", 0 },
+//		{ "yellow", 42 },
+//		{ "green", 70 },
+//		{ "cyan", 128 },
+//		{ "blue", 170 },
+//		{ "magenta", 213 }
+};
 
 gui::gui(int device)
 {
-//	while ( device < 100 ) {
-	camera.open(device);
+		camera.open(device);
+//	camera.open("/Users/zelenov/ws/ocv/balls.mov");
 
 	if (!camera.isOpened())  // if not success, exit program
 	{
 		std::cerr << "Cannot open the web cam" << device << "\n";
 		exit(-1);
-		//		return -1;
 	}
-//	}
-	for (int i = -100; i < 100; i++) {
-		std::cout << "camera_get(" << i << "): " << camera.get(i) << "\n";
-	}
-//	exp = camera.get(CV_CAP_PROP_EXPOSURE);
-//	std::cout << "exp: " << exp << "\n";
 	resIn.x = camera.get(CV_CAP_PROP_FRAME_WIDTH);
 	resIn.y = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
 
@@ -62,12 +66,70 @@ gui::~gui()
 	// TODO Auto-generated destructor stub
 }
 
-void gui::start()
+void gui::loop()
 {
 	while (true) {
 		getFrame();
-		tresholdFrame();
-		processFrame();
+//		tresholdFrame();
+//		processFrame();
+
+		for ( auto &hue: hues) {
+			cv::Mat imgHT = tresholdFrameH(hue.second);
+//			std::cerr << hue.first << " " << hue.second << "\n";
+
+			std::vector<std::vector<cv::Point> > contours;
+			std::vector<cv::Vec4i> hierarchy;
+			cv::findContours(imgHT, contours, hierarchy, CV_RETR_EXTERNAL, //CV_RETR_CCOMP,
+					CV_CHAIN_APPROX_SIMPLE);
+
+//			imshow("qqq", imgHT);
+//			std::cerr << contours.size() << "\n";
+
+			if (hierarchy.size() > 0) {
+				int idx = 0;
+				for (; idx >= 0; idx = hierarchy[idx][0]) {
+
+					if (contourArea(contours[idx]) < 50 ) continue;
+
+					cv::Moments m = cv::moments(contours[idx]);
+					int x = (int) (m.m10 / m.m00);
+					int y = (int) (m.m01 / m.m00);
+					cv::Vec3b p = imgHSV.at<cv::Vec3b>(y,x);
+
+					cv::Rect bound = cv::boundingRect(contours[idx]);
+					cv::rectangle(imgOver, bound, cv::Scalar(255,255,255), 2);
+//
+//					std::ostringstream log_str;
+//					log_str << "HSV: " << (int) p[0] << " " << (int) p[1] << " "
+//							<< (int) p[2];
+
+					cv::Point tl = bound.tl();
+					cv::Point br = bound.tl();
+
+					cv::putText(imgIn, (cv::String)std::to_string(tl.x),
+							cv::Point(tl.x,tl.y-20), fontFace, 1,
+							cv::Scalar(255,255,255), 1, 8);
+					cv::putText(imgIn, (cv::String)std::to_string(tl.y),
+							cv::Point(tl.x-50,tl.y+20), fontFace, 1,
+							cv::Scalar(255,255,255), 1, 8);
+
+
+					cv::putText(imgIn, cv::String(hue.first.c_str()),
+							bound.br(), fontFace, 2,
+							cv::Scalar(255,255,255), 2, 8);
+
+					cv::putText(imgIn, std::to_string(p[0]),
+							cv::Point(tl.x,br.y+40), fontFace, 1,
+							cv::Scalar(255,255,255), 1, 8);
+					cv::putText(imgIn, std::to_string(p[1]),
+							cv::Point(tl.x,br.y+55), fontFace, 1,
+							cv::Scalar(255,255,255), 1, 8);
+					cv::putText(imgIn, std::to_string(p[2]),
+							cv::Point(tl.x,br.y+70), fontFace, 1,
+							cv::Scalar(255,255,255), 1, 8);
+				}
+			}
+		}
 
 		show();
 	}
@@ -78,6 +140,7 @@ void gui::show()
 	cv::Mat imgTmp = imgIn;
 //	imgTmp = imgOver + imgTmp;
 	bitwise_or(imgOver, imgTmp, imgTmp);
+	imgOver *= 0.7;
 	imgTmp.copyTo(imgOut(cv::Rect(0, 0, imgIn.cols, imgIn.rows)));
 
 //	resize(imgTres, imgTmp, cv::Size(), qThumb, qThumb);
@@ -150,11 +213,8 @@ void gui::processFrame()
 
 void gui::tresholdFrame()
 {
-	cv::Mat imgHSV, imgTmp = imgIn;
-
 //	bilateralFilter(imgHSV, imgHSV, 5, 80, 80);
 //	cv::blur(imgIn, imgTmp, cv::Size(3, 3));
-	cv::cvtColor(imgTmp, imgHSV, cv::COLOR_BGR2HSV);
 	cv::inRange(imgHSV, cv::Scalar(iLowH, iLowS, iLowV),
 			cv::Scalar(iHighH, iHighS, iHighV), imgTres);
 
@@ -162,10 +222,30 @@ void gui::tresholdFrame()
 			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 	cv::dilate(imgTres, imgTres,
 			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-//	cv::dilate(imgTres, imgTres,
-//			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-//	cv::erode(imgTres, imgTres,
-//			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	cv::dilate(imgTres, imgTres,
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	cv::erode(imgTres, imgTres,
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+}
+
+cv::Mat gui::tresholdFrameH(hueInterval &interval)
+{
+//	cv::blur(imgHSV, imgHSV, cv::Size(3, 3));
+	cv::Mat imgTmp;
+
+	cv::inRange(imgHSV, cv::Scalar(interval.minH+3, iLowS, iLowV),
+			cv::Scalar(interval.maxH-3, iHighS, iHighV), imgTmp);
+//
+	cv::erode(imgTmp, imgTmp,
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+	cv::dilate(imgTmp, imgTmp,
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+	cv::dilate(imgTmp, imgTmp,
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+	cv::erode(imgTmp, imgTmp,
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+
+	return imgTmp;
 }
 
 void gui::getFrame()
@@ -180,10 +260,12 @@ void gui::getFrame()
 	bool bSuccess = camera.read(imgIn);
 //	flip(imgIn, imgIn, 1);
 	if (!bSuccess) {
-		std::cerr << "Cannot read a frame from video stream" << "\n";
-		exit(-1);
+		camera.set(CV_CAP_PROP_POS_AVI_RATIO, 0);
+		camera.read(imgIn);
+//		std::cerr << "Cannot read a frame from video stream" << "\n";
+//		exit(-1);
 	}
-
+	cv::cvtColor(imgIn, imgHSV, cv::COLOR_BGR2HSV);
 }
 
 void gui::createWindows()
@@ -208,10 +290,10 @@ void gui::resetBorders()
 	iLowH = 50;
 	iHighH = 128;
 
-	iLowS = 100;
+	iLowS = 180;
 	iHighS = 255;
 
-	iLowV = 100;
+	iLowV = 180;
 	iHighV = 255;
 	setTrackBars();
 }
@@ -248,8 +330,10 @@ void gui::mouseCB(int event, int x, int y, int flags)
 		cv::circle(imgOver, cv::Point((int) x / qGlob, (int) y / qGlob), 15,
 				(cv::Scalar) p, -1);
 
-		sprintf(log_str, "RGB: %d %d %d", p[0], p[1], p[2]);
-		log(log_str, "RGB");
+		std::ostringstream log_str;
+		log_str << "RGB: " << (int) p[0] << " " << (int) p[1] << " "
+				<< (int) p[2];
+		log(log_str.str(), "RGB");
 
 	} else if (event == cv::EVENT_LBUTTONDOWN
 			|| (event == cv::EVENT_MOUSEMOVE && flags == cv::EVENT_FLAG_LBUTTON)) {
@@ -257,42 +341,45 @@ void gui::mouseCB(int event, int x, int y, int flags)
 		if (x > resIn.x * qGlob || y > resIn.y * qGlob)
 			return;
 
-		cv::Mat imgTmp;
-		cv::blur(imgIn, imgTmp, cv::Size(3, 3));
-//		bilateralFilter(imgIn, imgTmp, 5, 80, 80);
+		// Pick color
+//		cv::Mat imgTmp;
+//		cv::blur(imgIn, imgTmp, cv::Size(3, 3));
+//		cv::cvtColor(imgTmp, imgTmp, cv::COLOR_BGR2HSV);
+		cv::Vec3b p = imgHSV.at<cv::Vec3b>((int) y / qGlob, (int) x / qGlob);
 
-		cv::cvtColor(imgTmp, imgTmp, cv::COLOR_BGR2HSV);
-		cv::Vec3b p = imgTmp.at<cv::Vec3b>((int) y / qGlob, (int) x / qGlob);
+		std::ostringstream log_str;
+		log_str << "HSV: " << (int) p[0] << " " << (int) p[1] << " "
+				<< (int) p[2];
+		log(log_str.str(), "HSV");
 
-		sprintf(log_str, "HSV: %d %d %d", p[0], p[1], p[2]);
-		log(log_str, "HSV");
-
-		int* funnel[] = { &iLowH, &iHighH, &iLowS, &iHighS, &iLowV, &iHighV };
-		for (int i = 0; i < 3; ++i) {
-			*funnel[i * 2] = std::max(0, p[i] - 30);
-			*funnel[i * 2 + 1] = std::min(255, p[i] + 30);
+		int* funnel[] = { &iLowH, &iHighH }; //, &iLowS, &iHighS, &iLowV, &iHighV };
+		for (int i = 0; i < 1; ++i) {
+			*funnel[i * 2] = std::max(0, p.val[i] - 10);
+			*funnel[i * 2 + 1] = std::min(255, p.val[i] + 10);
 		}
 
 		setTrackBars();
 	}
 }
 
-void gui::log(char* str)
+void gui::log(std::string str)
 {
-	logs.insert( std::make_pair(" ", str) );
+	logs.insert(std::make_pair(" ", str));
 }
 
-void gui::log(char* str, std::string key)
+void gui::log(std::string str, std::string key)
 {
 	logs[key] = str;
 }
 
 void gui::printLog()
 {
+
 	int rn = 0;
-	for (auto row: logs) {
-		cv::putText(imgOut, cv::String(row.second), cv::Point(25, 25+25*rn++), fontFace,
-				fontScale, cv::Scalar(100, 255, 100), thickness, 8);
+	for (auto row : logs) {
+		cv::putText(imgOut, cv::String(row.second.c_str()),
+				cv::Point(25, 25 + 25 * rn++), fontFace, 1.5,
+				cv::Scalar(100, 255, 100), 2, 8);
 //		if (row.first == "")
 	}
 	logs.erase(" ");
