@@ -67,8 +67,14 @@ public:
 
 		socket_.async_send_to(
 				boost::asio::buffer(message_), endpoint_,
-				[this](boost::system::error_code /*ec*/, std::size_t /*bytes_sent*/){}
-			);
+//				[this](boost::system::error_code /*ec*/, std::size_t /*bytes_sent*/){}
+				[&](
+				        const boost::system::error_code& error,
+				        std::size_t bytes_transferred)
+				      {
+				        ;
+				      }
+		);
 	}
 
 private:
