@@ -17,13 +17,14 @@ struct {
 	int minH; int maxH;
 } hueInterval;
 
-std::map< std::string, hueInterval > hues = {
+std::multimap< std::string, hueInterval > hues = {
 		{ "red",     {-10, 7} },
 		{ "yellow",  {7,  40} },
 		{ "green",   {40,  90} },
 		{ "cyan",    {90,  110} },
 		{ "blue",    {110, 140} },
-		{ "magenta", {140, 160} }
+		{ "magenta", {140, 160} },
+		{ "red",     {180, 255} }
 //		{ "red", 0 },
 //		{ "yellow", 42 },
 //		{ "green", 70 },
@@ -99,11 +100,15 @@ bool
 tracker::track()
 {
 	cv::Mat imgHSV;
-	cv::Mat imgTres;
+	cv::Mat imgTres = cv::Mat::zeros(cv::Size(ROI.cols, ROI.rows), CV_8U);
 	cv::cvtColor(ROI, imgHSV, cv::COLOR_BGR2HSV);
-	cv::inRange(imgHSV, cv::Scalar(hues[color].minH, 200, 150),
-			cv::Scalar(hues[color].maxH, 255, 255), imgTres);
 
+	for(auto h = hues.begin(); h != hues.end(); h++){
+		cv::Mat imgTmp;
+		cv::inRange(imgHSV, cv::Scalar(h->second.minH, 200, 150),
+				cv::Scalar(h->second.maxH, 255, 255), imgTmp);
+		cv::bitwise_or(imgTres, imgTmp, imgTres);
+	}
 	cv::erode(imgTres, imgTres,
 			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
 	cv::dilate(imgTres, imgTres,
@@ -147,6 +152,7 @@ tracker::track()
 		return true;
 	}
 	else {
+		std::cerr << "Lost [" << color << "] object\n";
 		return false;
 	}
 

@@ -21,10 +21,16 @@
 
 class monitor {
 public:
-//	monitor() {};
+	monitor(){};
 	monitor(int device);
 	monitor(std::string file);
 	virtual ~monitor() {};
+
+	void operator() (int device);
+	void operator() (std::string file);
+	operator bool() const {
+		return source.isOpened();
+	};
 
 public:
 	void
@@ -70,11 +76,11 @@ private:
 	const double qThumb = 1;
 	const double qGlob = .5;
 
-	time_t second_start, second_end;
+	time_t second_start=0, second_end=0;
 
 	int    fps_cnt = 0;
-	double sec;
-	double fps;
+	double sec     = 0;
+	double fps     = 0;
 	char   fps_str[100] = "";
 
 	int    objcnt = 0;

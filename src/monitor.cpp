@@ -26,7 +26,31 @@ monitor::monitor(std::string file)
 	init();
 }
 
+void
+monitor::operator()(std::string file)
+{
+	source.open(file);
+	if (!source.isOpened())  // if not success, exit program
+	{
+		std::cerr << "Cannot open the file '" << file << "'\n";
+		exit(-1);
+	}
+	init();
+}
+
 monitor::monitor(int device)
+{
+	source.open(device);
+	if (!source.isOpened())  // if not success, exit program
+	{
+		std::cerr << "Cannot open the web cam " << device << "\n";
+		exit(-1);
+	}
+	init();
+}
+
+void
+monitor::operator()(int device)
 {
 	source.open(device);
 	if (!source.isOpened())  // if not success, exit program
@@ -40,24 +64,25 @@ monitor::monitor(int device)
 void
 monitor::init()
 {
-    source.set(CV_CAP_PROP_FRAME_WIDTH,1920);//1920
-    source.set(CV_CAP_PROP_FRAME_HEIGHT,1080);//1080
-    source.set(CV_CAP_PROP_FPS, 60);
+//    source.set(CV_CAP_PROP_FRAME_WIDTH,1920);//1920
+//    source.set(CV_CAP_PROP_FRAME_HEIGHT,1080);//1080
+//    source.set(CV_CAP_PROP_FPS, 60);
 //    source.set(CV_CAP_PROP_SPEED, 1);
-    source.set(CV_CAP_PROP_BRIGHTNESS, .1);
-    source.set(CV_CAP_PROP_CONTRAST, .1);
-    source.set(CV_CAP_PROP_SATURATION, .1);
-    source.set(CV_CAP_PROP_EXPOSURE, .1);
+//    source.set(CV_CAP_PROP_BRIGHTNESS, .1);
+//    source.set(CV_CAP_PROP_CONTRAST, .1);
+//    source.set(CV_CAP_PROP_SATURATION, .1);
+//    source.set(CV_CAP_PROP_EXPOSURE, .1);
 
-	resIn.x = 1920;//source.get(CV_CAP_PROP_FRAME_WIDTH);
-	resIn.y = 1080;//source.get(CV_CAP_PROP_FRAME_HEIGHT);
+	resIn.x = source.get(CV_CAP_PROP_FRAME_WIDTH);
+	resIn.y = source.get(CV_CAP_PROP_FRAME_HEIGHT);
 
+	imgIn   = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
 	imgOver = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
-	imgOut = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
+	imgOut  = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
 
 	std::cout << "Camera " << resIn.x << "x" << resIn.y << " opened\n";
 
-//	createWindows();
+	createWindows();
 //	resetBorders();
 }
 
@@ -84,8 +109,8 @@ monitor::send()
 void
 monitor::createWindows()
 {
-	cv::namedWindow("Main", CV_WINDOW_OPENGL); //CV_WINDOW_AUTOSIZE | CV_GUI_EXPANDED |
-	cv::setOpenGlContext ( "Main" );
+	cv::namedWindow("Monitor", CV_WINDOW_AUTOSIZE);// | CV_GUI_EXPANDED | CV_WINDOW_OPENGL); //
+//	cv::setOpenGlContext ( "Main" );
 }
 
 void
@@ -95,14 +120,20 @@ monitor::getFrame()
 		time(&second_start);
 	}
 
-	bool bSuccess = source.read(imgIn);
-	if (!bSuccess) {
-		source.read(imgIn);
-	}
+	int tryes = 0;
+	bool bSuccess = false;
+	while(!bSuccess){
+		bSuccess = source.read(imgIn);
+		if(tryes++ > 100) {
+			std::cout << "Stream ended\n";
+			exit(0);
+		}
+	};
 }
 
 void monitor::find()
 {
+	std::cout << "Looking...";
 	trackers.clear();
 	getFrame();
 
@@ -123,7 +154,7 @@ void monitor::find()
 
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
-	cv::findContours(imgTres, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	cv::findContours(imgTres, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
 
 	objcnt = 0;
@@ -153,15 +184,16 @@ void monitor::find()
 		}
 	}
 	log("Objects: " + std::to_string(objcnt), "Objects");
-	std::cout << "Objects: " << objcnt << "\n";
+	std::cout << "Found " << objcnt << "\n";
 
 }
 
 void monitor::track()
 {
 	int tracked = 0;
-	for(auto t=trackers.begin(); t!=trackers.end(); t++)
+	for(auto t=trackers.begin(); t!=trackers.end(); t++) {
 		if(t->track()) tracked++;
+	}
 
 	if(objcnt==0 || tracked < objcnt) find();
 }
@@ -183,9 +215,10 @@ void monitor::show()
 	log(fps_str, "FPS");
 	printLog();
 
+//	imgOut = imgIn + imgOver;
 	cv::bitwise_or(imgOver, imgTmp, imgTmp);
 	cv::resize(imgTmp, imgOut, cv::Size(), qGlob, qGlob);
-	cv::imshow("Main", imgOut);
+	cv::imshow("Monitor", imgOut);
 
 	imgOver *= 0;
 }
