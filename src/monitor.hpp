@@ -21,7 +21,6 @@
 
 class monitor {
 public:
-	monitor(){};
 	monitor(int device);
 	monitor(std::string file);
 	virtual ~monitor() {};

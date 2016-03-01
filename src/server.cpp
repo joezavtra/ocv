@@ -20,7 +20,7 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	monitor m;
+	monitor *m;
 
 	for (int i = 1; i < argc; ++i) {
 		std::string an = argv[i];
@@ -28,31 +28,31 @@ int main(int argc, char** argv)
 
 			std::string av = argv[++i];
 			std::cout << "Open device: " << av << "\n";
-			m(std::stoi(av));
+			m = new monitor (std::stoi(av));
 
 		} else if ((an == "-f") || (an == "--file")) {
 
 			std::string av = argv[++i];
 			std::cout << "Open file: " << av << "\n";
-			m(av);
+			m = new monitor (av.c_str());
 		}
 	}
 
-	if( !m ) m( 0 );
+	if( !*m ) m = new monitor( 0 );
 
-	while( m.players_count() == 0 )
+	while( m->players_count() == 0 )
 	{
-		m.find();
-		m.show();
+		m->find();
+		m->show();
 	}
 	while(1) {
 
-		m.getFrame();
-////		m.find();
-		m.track();
-		m.show();
+		m->getFrame();
+////		m->find();
+		m->track();
+		m->show();
 //
-		m.send();
+		m->send();
 		int key = 1; //cv::waitKey(10);
 		switch (key) {
 			case 27: {
