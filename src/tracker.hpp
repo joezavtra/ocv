@@ -29,17 +29,26 @@ private:
 	double      x;
 	double      y;
 
+	// extrapolation
+	double      px   = -1;
+	double      py   = -1;
+	int         step =  0;
+
 public:
+	static const int XTRAPLTN_RATE = 3;
+
 	tracker() {};
 	tracker(cv::Mat&, cv::Mat&, cv::Rect&);
 
 
 	virtual ~tracker();
-//	double      x()        { return pt.x + 0*sz.width/2; };
-//	double      y()        { return pt.y + 0*sz.height/2; };
-	double      A()        { return area; };
-	double      X()        { return 100*x/imgIn.cols; };
-	double      Y()        { return 100*y/imgIn.rows; };
+
+	void        next_step () { step++; };
+	bool        is_extrapolated()        { return step>0; };
+
+	double      A();//        { return area; };
+	double      X();//        { return 100*(x + (x-px)* step /tracker::XTRAPLTN_RATE)/imgIn.cols; };
+	double      Y();//        { return 100*(y + (y-py)*(step++)/tracker::XTRAPLTN_RATE)/imgIn.rows; };
 	std::string get_color(){ return color; };
 
 	bool

@@ -15,8 +15,8 @@ opencv2/imgproc/imgproc.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/opencv2/imgproc/imgproc.hpp
 opencv2/core/cvstd.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/opencv2/core/cvstd.hpp
-sender.cpp
-/Users/pavelzelenov/ws/vr_tracker/src/sender.cpp
+sender.hpp
+/Users/pavelzelenov/ws/vr_tracker/src/sender.hpp
 tracker.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/tracker.hpp
 monitor.hpp
@@ -33,10 +33,12 @@ opencv2/imgproc/imgproc.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/opencv2/imgproc/imgproc.hpp
 opencv2/core/cvstd.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/opencv2/core/cvstd.hpp
+sender.hpp
+/Users/pavelzelenov/ws/vr_tracker/src/sender.hpp
 tracker.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/tracker.hpp
 
-/Users/pavelzelenov/ws/vr_tracker/src/sender.cpp
+/Users/pavelzelenov/ws/vr_tracker/src/sender.hpp
 chrono
 -
 cmath
@@ -51,8 +53,6 @@ boost/asio.hpp
 -
 boost/bind.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/boost/bind.hpp
-tracker.hpp
-/Users/pavelzelenov/ws/vr_tracker/src/tracker.hpp
 
 /Users/pavelzelenov/ws/vr_tracker/src/server.cpp
 iostream

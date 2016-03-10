@@ -152,33 +152,6 @@ monitor.cpp.s:
 	cd /Users/pavelzelenov/ws/vr_tracker/build && $(MAKE) -f src/CMakeFiles/vr_tracker.dir/build.make src/CMakeFiles/vr_tracker.dir/monitor.cpp.s
 .PHONY : monitor.cpp.s
 
-sender.o: sender.cpp.o
-
-.PHONY : sender.o
-
-# target to build an object file
-sender.cpp.o:
-	cd /Users/pavelzelenov/ws/vr_tracker/build && $(MAKE) -f src/CMakeFiles/vr_tracker.dir/build.make src/CMakeFiles/vr_tracker.dir/sender.cpp.o
-.PHONY : sender.cpp.o
-
-sender.i: sender.cpp.i
-
-.PHONY : sender.i
-
-# target to preprocess a source file
-sender.cpp.i:
-	cd /Users/pavelzelenov/ws/vr_tracker/build && $(MAKE) -f src/CMakeFiles/vr_tracker.dir/build.make src/CMakeFiles/vr_tracker.dir/sender.cpp.i
-.PHONY : sender.cpp.i
-
-sender.s: sender.cpp.s
-
-.PHONY : sender.s
-
-# target to generate assembly for a file
-sender.cpp.s:
-	cd /Users/pavelzelenov/ws/vr_tracker/build && $(MAKE) -f src/CMakeFiles/vr_tracker.dir/build.make src/CMakeFiles/vr_tracker.dir/sender.cpp.s
-.PHONY : sender.cpp.s
-
 server.o: server.cpp.o
 
 .PHONY : server.o
@@ -245,9 +218,6 @@ help:
 	@echo "... monitor.o"
 	@echo "... monitor.i"
 	@echo "... monitor.s"
-	@echo "... sender.o"
-	@echo "... sender.i"
-	@echo "... sender.s"
 	@echo "... server.o"
 	@echo "... server.i"
 	@echo "... server.s"

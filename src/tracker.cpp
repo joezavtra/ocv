@@ -18,12 +18,12 @@ struct {
 } hueInterval;
 
 std::multimap< std::string, hueInterval > hues = {
-		{ "red",     {-10, 7} },
-		{ "yellow",  {7,  40} },
+		{ "red",     {0, 15} },
+		{ "yellow",  {15,  40} },
 		{ "green",   {40,  90} },
 		{ "cyan",    {90,  110} },
 		{ "blue",    {110, 140} },
-		{ "magenta", {140, 160} },
+		{ "magenta", {140, 180} },
 		{ "red",     {180, 255} }
 //		{ "red", 0 },
 //		{ "yellow", 42 },
@@ -44,6 +44,9 @@ tracker::tracker(cv::Mat &in, cv::Mat &over, cv::Rect &b)
 
 	track();
 };
+double      tracker::A()        { return area; };
+double      tracker::X()        { return 100*(x + (x-px)* step /tracker::XTRAPLTN_RATE)/imgIn.cols; };
+double      tracker::Y()        { return 100*(y + (y-py)* step /tracker::XTRAPLTN_RATE)/imgIn.rows; };
 
 void
 tracker::guessColor()
@@ -85,17 +88,6 @@ tracker::guessColor()
 	std::cout << "---" << color << "\n";
 };
 
-//double
-//tracker::x()
-//{
-//	return pt.x+sz.width/2;
-//};
-//
-//double
-//tracker::X()
-//{
-//};
-
 bool
 tracker::track()
 {
@@ -103,20 +95,26 @@ tracker::track()
 	cv::Mat imgTres = cv::Mat::zeros(cv::Size(ROI.cols, ROI.rows), CV_8U);
 	cv::cvtColor(ROI, imgHSV, cv::COLOR_BGR2HSV);
 
+	step = 0;
+	px = x;
+	py = y;
+
 	for(auto h = hues.begin(); h != hues.end(); h++){
 		cv::Mat imgTmp;
-		cv::inRange(imgHSV, cv::Scalar(h->second.minH, 200, 150),
+		cv::inRange(imgHSV, cv::Scalar(h->second.minH, 180, 180),
 				cv::Scalar(h->second.maxH, 255, 255), imgTmp);
 		cv::bitwise_or(imgTres, imgTmp, imgTres);
 	}
+
+	int tune_size = 2;
 	cv::erode(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
 	cv::dilate(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
 	cv::dilate(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
 	cv::erode(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
+			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
 
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
@@ -133,12 +131,19 @@ tracker::track()
 		}
 
 
+		cv::Point2f c;
+		float r;
+		cv::minEnclosingCircle(contours[cidx_max], c, r);
+//		cv::circle(imgOver,c,r*1,cv::Scalar(100,100,255),2,1);
+
 		cv::Rect b = cv::boundingRect(contours[cidx_max]);
 		cv::drawContours(imgOver, contours, cidx_max, cv::Scalar(255,255,255), 1, 8);
 
 		area = area_max;
-		x=b.x+b.width/2;
-		y=b.y+b.height/2;
+//		x=b.x+b.width/2;
+//		y=b.y+b.height/2;
+		x = c.x;
+		y = c.y;
 
 		ROI = imgIn(b);
 		ROI.adjustROI(2*b.height, 2*b.height, 2*b.width, 2*b.width);
@@ -149,6 +154,11 @@ tracker::track()
 					cv::Scalar(255,255,255), 2, 8);
 		std::cout << color << " " << pt << "\n";
 		cv::rectangle(imgOver, cv::Rect(pt.x,pt.y,ROI.cols,ROI.rows), cv::Scalar(255,255,255), 2);
+
+		// failover for first track
+		if (px == -1 ) px = x;
+		if (py == -1 ) py = y;
+
 		return true;
 	}
 	else {

@@ -11,7 +11,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 SET(BUILD_SHARED_LIBRARIES OFF)
 
-add_executable(vr_tracker server.cpp tracker.cpp sender.cpp monitor.cpp)
+add_executable(vr_tracker server.cpp tracker.cpp monitor.cpp)
 target_link_libraries(vr_tracker ${Boost_SYSTEM_LIBRARIES} ${OpenCV_LIBS} )
 
 

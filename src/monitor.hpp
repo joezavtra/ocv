@@ -14,6 +14,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/cvstd.hpp"
+
+#include "sender.hpp"
 //#include <boost/asio.hpp>
 //#include <boost/bind.hpp>
 
@@ -53,7 +55,7 @@ public:
 	players_count() { return trackers.size(); };
 
 	void
-	send();
+	send(bool is_real);
 
 private:
 	void init();

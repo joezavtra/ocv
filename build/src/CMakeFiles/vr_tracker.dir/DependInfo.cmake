@@ -5,7 +5,6 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
   "/Users/pavelzelenov/ws/vr_tracker/src/monitor.cpp" "/Users/pavelzelenov/ws/vr_tracker/build/src/CMakeFiles/vr_tracker.dir/monitor.cpp.o"
-  "/Users/pavelzelenov/ws/vr_tracker/src/sender.cpp" "/Users/pavelzelenov/ws/vr_tracker/build/src/CMakeFiles/vr_tracker.dir/sender.cpp.o"
   "/Users/pavelzelenov/ws/vr_tracker/src/server.cpp" "/Users/pavelzelenov/ws/vr_tracker/build/src/CMakeFiles/vr_tracker.dir/server.cpp.o"
   "/Users/pavelzelenov/ws/vr_tracker/src/tracker.cpp" "/Users/pavelzelenov/ws/vr_tracker/build/src/CMakeFiles/vr_tracker.dir/tracker.cpp.o"
   )

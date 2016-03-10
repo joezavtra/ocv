@@ -48,16 +48,19 @@ int main(int argc, char** argv)
 	while(1) {
 
 		m->getFrame();
-////		m->find();
-		m->track();
+//		m->find();
 		m->show();
-//
-		m->send();
-		int key = 1; //cv::waitKey(10);
-		switch (key) {
-			case 27: {
-				std::cout << "esc key is pressed by user\n";
-				exit(0);
+		m->track();
+//		m->send(true);
+		for(int i=0; i<=tracker::XTRAPLTN_RATE-1; i++){
+//			std::cerr << "";
+			m->send(false);
+			int key = cv::waitKey(1000/60/tracker::XTRAPLTN_RATE);
+			switch (key) {
+				case 27: {
+					std::cout << "esc key is pressed by user\n";
+					exit(0);
+				}
 			}
 		}
 	}

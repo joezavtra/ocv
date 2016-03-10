@@ -11,7 +11,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/cvstd.hpp"
 
-#include "sender.cpp"
+#include "sender.hpp"
 #include "tracker.hpp"
 #include "monitor.hpp"
 
@@ -87,16 +87,41 @@ monitor::init()
 }
 
 void
-monitor::send()
+monitor::send(bool is_real)
 {
+
 	try
 	{
 		boost::asio::ip::address address = boost::asio::ip::address_v4::broadcast();
 		boost::asio::io_service  io_service;
 		sender s(io_service, address);
-		for(auto t=trackers.begin(); t!=trackers.end(); t++)
-			s.add(*t);
-		s.send();
+
+		std::ostringstream os;
+
+		if (is_real) std::cerr << "----real\n";
+		else std::cerr << "---fake\n";
+
+		os << "{\n  \"general\" : {\n    \"timestamp\" : "
+				<< std::chrono::high_resolution_clock::now().time_since_epoch().count() ;
+
+		for(auto tr = trackers.begin(); tr != trackers.end(); tr++)
+		{
+			os  << "\n  },"
+				<< "\n  \"" << tr->get_color() <<"\" : { ";
+
+			if (tr->is_extrapolated())
+				os << "\n    \"extrapolated\" : " << tr->is_extrapolated() << ",";
+
+			os  << "\n    \"a\": " << tr->A() << ","
+				<< "\n    \"x\": " << tr->Y() << ","
+				<< "\n    \"y\": " << 100-tr->X()
+				<< "\n  ";
+			tr->next_step();
+		}
+
+		os << "}\n}$\n";
+
+		s.send(os.str());
 		io_service.run();
 	}
 	catch (std::exception& e)
@@ -172,7 +197,7 @@ void monitor::find()
 					cv::Scalar(100, 100, 255), 2, 8);
 
 
-			if (area < 150 ) continue;
+			if (area < 100 ) continue;
 			if (area > 1800 ) continue;
 
 
@@ -220,7 +245,7 @@ void monitor::show()
 	cv::resize(imgTmp, imgOut, cv::Size(), qGlob, qGlob);
 	cv::imshow("Monitor", imgOut);
 
-	imgOver *= 0;
+	imgOver *= 0.1;
 }
 
 void monitor::log(std::string str)
