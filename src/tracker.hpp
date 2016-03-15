@@ -35,7 +35,7 @@ private:
 	int         step =  0;
 
 public:
-	static const int XTRAPLTN_RATE = 3;
+	static const int XTRAPLTN_RATE = 2;
 
 	tracker() {};
 	tracker(cv::Mat&, cv::Mat&, cv::Rect&);

@@ -98,14 +98,17 @@ monitor::send(bool is_real)
 
 		std::ostringstream os;
 
-		if (is_real) std::cerr << "----real\n";
-		else std::cerr << "---fake\n";
+//		if (is_real) std::cerr << "----real\n";
+//		else std::cerr << "---fake\n";
 
 		os << "{\n  \"general\" : {\n    \"timestamp\" : "
-				<< std::chrono::high_resolution_clock::now().time_since_epoch().count() ;
+				<< std::chrono::high_resolution_clock::now().time_since_epoch().count();
 
 		for(auto tr = trackers.begin(); tr != trackers.end(); tr++)
 		{
+
+			if ( !is_real ) tr->next_step();
+
 			os  << "\n  },"
 				<< "\n  \"" << tr->get_color() <<"\" : { ";
 
@@ -113,10 +116,9 @@ monitor::send(bool is_real)
 				os << "\n    \"extrapolated\" : " << tr->is_extrapolated() << ",";
 
 			os  << "\n    \"a\": " << tr->A() << ","
-				<< "\n    \"x\": " << tr->Y() << ","
-				<< "\n    \"y\": " << 100-tr->X()
+				<< "\n    \"x\": " << 100-tr->X() << ","
+				<< "\n    \"y\": " << 100-tr->Y()
 				<< "\n  ";
-			tr->next_step();
 		}
 
 		os << "}\n}$\n";
@@ -245,7 +247,7 @@ void monitor::show()
 	cv::resize(imgTmp, imgOut, cv::Size(), qGlob, qGlob);
 	cv::imshow("Monitor", imgOut);
 
-	imgOver *= 0.1;
+	imgOver *= 0;
 }
 
 void monitor::log(std::string str)

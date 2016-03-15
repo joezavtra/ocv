@@ -75,7 +75,7 @@ private:
 	} resIn;
 
 	const double qThumb = 1;
-	const double qGlob = .5;
+	const double qGlob = 1;
 
 	time_t second_start=0, second_end=0;
 
