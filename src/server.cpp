@@ -5,6 +5,7 @@
  *      Author: pavelzelenov
  */
 
+#include <stdio.h>
 #include <iostream>
 #include <string>
 
@@ -53,38 +54,47 @@ int main(int argc, char** argv)
 		auto frame = std::chrono::high_resolution_clock::now();
 
 //		m->find();
-		m->show();
-		auto show = std::chrono::high_resolution_clock::now();
 		m->track();
 		auto track = std::chrono::high_resolution_clock::now();
+//		m->show();
+		auto show = std::chrono::high_resolution_clock::now();
 		m->send(true);
 		auto send = std::chrono::high_resolution_clock::now();
-
-//		for(int i=0; i<=tracker::XTRAPLTN_RATE-1; i++){
-//			int key = cv::waitKey(1000/160/tracker::XTRAPLTN_RATE);
-//			switch (key) {
-//				case 27: {
-//					std::cout << "esc key is pressed by user\n";
-//					exit(0);
-//				}
-//			}
-//			m->send(false);
-//		}
+//
+//		// миллисекунды оставшиеся до конца фрейма (~30fps)
+		int time_left = 1000/30 - 1000*(double)duration_cast<duration<double>>(send - start).count();
+		int delay     = time_left/tracker::XTRAPLTN_RATE;
+//
+//		std::cout << time_left << "\n";
+//
+		for(int i=0; i<=tracker::XTRAPLTN_RATE-1; i++){
+			if(delay<=0) continue;
+			int key = cv::waitKey(delay);
+			switch (key) {
+				case 27: {
+					std::cout << "esc key is pressed by user\n";
+					exit(0);
+				}
+			}
+			m->send(false);
+		}
 		auto extr = std::chrono::high_resolution_clock::now();
 
-		std::cerr << "f: "   << 1000*duration_cast<duration<double>>(frame - start).count()
-				  << "\tsh: " << 1000*duration_cast<duration<double>>(show - frame).count()
-				  << "\tt: "  << 1000*duration_cast<duration<double>>(track - show ).count()
-				  << "\ts: "  << 1000*duration_cast<duration<double>>(send - track).count()
-				  << "\te: "  << 1000*duration_cast<duration<double>>(extr - send).count()
-				  << "\n";
+		printf( "[%#7.4fms] f:%#7.4f t:%#7.4f sh:%#7.4f s:%#7.4f e:%#7.4f <%d>\n",
+				(double)1000*duration_cast<duration<double>>(extr - start).count(),
+				(double)1000*duration_cast<duration<double>>(frame - start).count(),
+				(double)1000*duration_cast<duration<double>>(track - frame).count(),
+				(double)1000*duration_cast<duration<double>>(show - track).count(),
+				(double)1000*duration_cast<duration<double>>(send - show).count(),
+				(double)1000*duration_cast<duration<double>>(extr - send).count(),
+				delay);
 
-		int key = cv::waitKey(100);
-		switch (key) {
-			case 27: {
-				std::cout << "esc key is pressed by user\n";
-				exit(0);
-			}
-		}
+//		int key = cv::waitKey(1);
+//		switch (key) {
+//			case 27: {
+//				std::cout << "esc key is pressed by user\n";
+//				exit(0);
+//			}
+//		}
 	}
 }

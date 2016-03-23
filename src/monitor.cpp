@@ -112,7 +112,7 @@ monitor::send(bool is_real)
 			os  << "\n  },"
 				<< "\n  \"" << tr->get_color() <<"\" : { ";
 
-			if (tr->is_extrapolated())
+//			if (tr->is_extrapolated())
 				os << "\n    \"extrapolated\" : " << tr->is_extrapolated() << ",";
 
 			os  << "\n    \"a\": " << tr->A() << ","

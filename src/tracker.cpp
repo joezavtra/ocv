@@ -47,12 +47,12 @@ tracker::tracker(cv::Mat &in, cv::Mat &over, cv::Rect &b)
 double      tracker::A()        { return area; };
 double      tracker::X()        {
 	float delta = (x-px)* step /tracker::XTRAPLTN_RATE;
-	if (delta<4) delta=0;
+//	if (delta<4) delta=0;
 	return 100*(x+delta)/imgIn.cols;
 };
 double      tracker::Y()        {
 	float delta = (y-py)* step /tracker::XTRAPLTN_RATE;
-	if (delta<4) delta=0;
+//	if (delta<4) delta=0;
 	return 100*(y+delta)/imgIn.rows;
 };
 
@@ -108,29 +108,30 @@ tracker::track()
 	py = y;
 
 	for(auto h = hues.begin(); h != hues.end(); h++){
+		if ( h->first != color) continue;
 		cv::Mat imgTmp;
-//		cv::inRange(imgHSV, cv::Scalar(h->second.minH, 100, 100),
-//				cv::Scalar(h->second.maxH, 255, 255), imgTmp);
-		cv::inRange(imgHSV, cv::Scalar(0, 10, 10),
-				cv::Scalar(255, 255, 255), imgTmp);
+		cv::inRange(imgHSV, cv::Scalar(h->second.minH, 100, 100),
+				cv::Scalar(h->second.maxH, 255, 255), imgTmp);
+//		cv::inRange(imgHSV, cv::Scalar(0, 10, 10),
+//				cv::Scalar(255, 255, 255), imgTmp);
 		cv::bitwise_or(imgTres, imgTmp, imgTres);
 	}
 
-	int tune_size = 6;
-	cv::erode(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
-	cv::dilate(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
+//	int tune_size = 10;
+//	cv::erode(imgTres, imgTres,
+//			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
 //	cv::dilate(imgTres, imgTres,
 //			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
-	cv::erode(imgTres, imgTres,
-			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
+//	cv::dilate(imgTres, imgTres,
+//			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
+//	cv::erode(imgTres, imgTres,
+//			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(tune_size,tune_size)));
 
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
 	cv::findContours(imgTres, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, pt);
 
-	if (hierarchy.size() > 0) {
+	if (contours.size() > 0) {
 		int idx = 0;
 
 		double area_max = 0;
@@ -140,19 +141,22 @@ tracker::track()
 			if( contourArea(contours[idx]) > area_max ) { area_max=contourArea(contours[idx]); cidx_max=idx; };
 		}
 
+		cv::Moments mu = moments( contours[cidx_max], false );
+		cv::Point2f c = cv::Point2f( mu.m10/mu.m00 , mu.m01/mu.m00 );
+
+
 		cv::Rect b = cv::boundingRect(contours[cidx_max]);
-//		cv::drawMarker()
-		cv::drawContours(imgOver, contours, cidx_max, cv::Scalar(255,255,255), 1, 8);
+		cv::drawContours(imgOver, contours, cidx_max, cv::Scalar(255-rand()%128,255-rand()%128,255-rand()%128), 1, 8);
 
 //		cv::Point2f c;
 //		float r;
 //		cv::minEnclosingCircle(contours[cidx_max], c, r);
 //		cv::circle(imgOver,c,r*1,cv::Scalar(100,100,255),1,1);
 
-		x=b.x+b.width/2;
-		y=b.y+b.height/2;
-//		x = c.x;
-//		y = c.y;
+//		x=b.x+b.width/2;
+//		y=b.y+b.height/2;
+		x = c.x;
+		y = c.y;
 		area = area_max;
 
 
