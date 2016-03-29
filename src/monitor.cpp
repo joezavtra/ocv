@@ -4,6 +4,7 @@
  *  Created on: 2 февр. 2016 г.
  *      Author: pavelzelenov
  */
+#include <thread>
 
 #include <iostream>
 
@@ -66,7 +67,8 @@ monitor::init()
 {
 //    source.set(CV_CAP_PROP_FRAME_WIDTH,1920);//1920
 //    source.set(CV_CAP_PROP_FRAME_HEIGHT,1080);//1080
-//    source.set(CV_CAP_PROP_FPS, 60);
+      source.set(CV_CAP_PROP_FPS,60);
+//      std::cerr << source.get(CV_CAP_PROP_FPS) << "\n";
 //    source.set(CV_CAP_PROP_SPEED, 1);
 //    source.set(CV_CAP_PROP_BRIGHTNESS, .1);
 //    source.set(CV_CAP_PROP_CONTRAST, .1);
@@ -76,6 +78,8 @@ monitor::init()
 	resIn.x = source.get(CV_CAP_PROP_FRAME_WIDTH);
 	resIn.y = source.get(CV_CAP_PROP_FRAME_HEIGHT);
 
+	imgBuff = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
+
 	imgIn   = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
 	imgOver = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
 	imgOut  = cv::Mat::zeros(cv::Size(resIn.x, resIn.y), CV_8UC3);
@@ -84,6 +88,9 @@ monitor::init()
 
 	createWindows();
 //	resetBorders();
+
+	// start capturing
+	getFrame();
 }
 
 void
@@ -137,38 +144,61 @@ void
 monitor::createWindows()
 {
 	cv::namedWindow("Monitor", CV_WINDOW_AUTOSIZE);// | CV_GUI_EXPANDED | CV_WINDOW_OPENGL); //
+	cv::namedWindow("q", CV_WINDOW_AUTOSIZE);// | CV_GUI_EXPANDED | CV_WINDOW_OPENGL); //
 //	cv::setOpenGlContext ( "Main" );
 }
 
 void
 monitor::getFrame()
 {
+
 	if (fps_cnt == 0) {
 		time(&second_start);
 	}
+	frame_thread_ = std::thread([&](){
+		using namespace std::chrono;
+		int tryes = 0;
+		while(!finished_){
+			bool bSuccess = false;
+			std::cout << "---\n";
+			while(!bSuccess){
+				auto start = std::chrono::high_resolution_clock::now();
+				bSuccess = source.read(imgBuff);
+				auto end = std::chrono::high_resolution_clock::now();
+				printf( "get frame: [%#7.4fms]\n",
+						(double)1000*std::chrono::duration_cast<duration<double>>(end - start).count());
+//				frame_mutex_.lock();
+				imgIn = imgBuff;
+				cv::imshow("q", imgBuff);
+//				frame_mutex_.unlock();
+//				imgBuff.copyTo(imgIn);
+				cv::waitKey(100);
 
-	int tryes = 0;
-	bool bSuccess = false;
-	while(!bSuccess){
-		bSuccess = source.read(imgIn);
-		if(tryes++ > 100) {
-			std::cout << "Stream ended\n";
-			exit(0);
-		}
-	};
+				if(tryes++ > 1000) {
+					std::cout << "Stream ended\n";
+					exit(0);
+				}
+			};
+		};
+	});
+	frame_thread_.join();
 }
 
 void monitor::find()
 {
 	std::cout << "Looking...";
 	trackers.clear();
-	getFrame();
 
 	cv::Mat imgHSV;
 	cv::Mat imgTres;
+
+	/////////////////////
+//	frame_mutex_.lock();
 	cv::cvtColor(imgIn, imgHSV, cv::COLOR_BGR2HSV);
 	cv::inRange(imgHSV, cv::Scalar(0, 200, 150),
 			cv::Scalar(255, 255, 255), imgTres);
+//	frame_mutex_.unlock();
+	//////////////////////
 
 	cv::erode(imgTres, imgTres,
 			cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5)));
@@ -227,7 +257,7 @@ void monitor::track()
 
 void monitor::show()
 {
-	cv::Mat imgTmp = imgIn;
+	cv::Mat imgTmp(imgIn);
 
 	time(&second_end);
 	fps_cnt++;
@@ -237,17 +267,20 @@ void monitor::show()
 		sprintf(fps_str, "FPS: %.2f [%dX%d]", fps, resIn.x, resIn.y);
 		fps_cnt = 0;
 		std::cout << fps_str << "\n";
+
+
+
+		log(fps_str, "FPS");
+		printLog();
+
+	//	imgOut = imgIn + imgOver;
+		cv::bitwise_or(imgOver, imgTmp, imgTmp);
+		cv::resize(imgTmp, imgOut, cv::Size(), qGlob, qGlob);
+		cv::imshow("Monitor", imgOut);
 	}
 
-	log(fps_str, "FPS");
-	printLog();
-
-//	imgOut = imgIn + imgOver;
-	cv::bitwise_or(imgOver, imgTmp, imgTmp);
-	cv::resize(imgTmp, imgOut, cv::Size(), qGlob, qGlob);
-	cv::imshow("Monitor", imgOut);
-
 	imgOver *= 0;
+
 }
 
 void monitor::log(std::string str)

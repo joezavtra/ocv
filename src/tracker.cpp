@@ -99,9 +99,9 @@ tracker::guessColor()
 bool
 tracker::track()
 {
-	cv::Mat imgHSV;
-	cv::Mat imgTres = cv::Mat::zeros(cv::Size(ROI.cols, ROI.rows), CV_8U);
-	cv::cvtColor(ROI, imgHSV, cv::COLOR_BGR2HSV);
+	cv::Mat roiHSV;
+	cv::Mat roiTres = cv::Mat::zeros(cv::Size(ROI.cols, ROI.rows), CV_8U);
+	cv::cvtColor(ROI, roiHSV, cv::COLOR_BGR2HSV);
 
 	step = 0;
 	px = x;
@@ -110,11 +110,9 @@ tracker::track()
 	for(auto h = hues.begin(); h != hues.end(); h++){
 		if ( h->first != color) continue;
 		cv::Mat imgTmp;
-		cv::inRange(imgHSV, cv::Scalar(h->second.minH, 100, 100),
+		cv::inRange(roiHSV, cv::Scalar(h->second.minH, 100, 100),
 				cv::Scalar(h->second.maxH, 255, 255), imgTmp);
-//		cv::inRange(imgHSV, cv::Scalar(0, 10, 10),
-//				cv::Scalar(255, 255, 255), imgTmp);
-		cv::bitwise_or(imgTres, imgTmp, imgTres);
+		cv::bitwise_or(roiTres, imgTmp, roiTres);
 	}
 
 //	int tune_size = 10;
@@ -129,7 +127,7 @@ tracker::track()
 
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<cv::Vec4i> hierarchy;
-	cv::findContours(imgTres, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, pt);
+	cv::findContours(roiTres, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, pt);
 
 	if (contours.size() > 0) {
 		int idx = 0;

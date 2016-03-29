@@ -7,6 +7,8 @@
 #IncludeRegexTransform: 
 
 /Users/pavelzelenov/ws/vr_tracker/src/monitor.cpp
+thread
+-
 iostream
 -
 opencv2/highgui/highgui.hpp
@@ -55,6 +57,10 @@ boost/bind.hpp
 /Users/pavelzelenov/ws/vr_tracker/src/boost/bind.hpp
 
 /Users/pavelzelenov/ws/vr_tracker/src/server.cpp
+thread
+-
+stdio.h
+-
 iostream
 -
 string

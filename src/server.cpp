@@ -4,6 +4,7 @@
  *  Created on: 31 янв. 2016 г.
  *      Author: pavelzelenov
  */
+#include <thread>
 
 #include <stdio.h>
 #include <iostream>
@@ -19,9 +20,10 @@
 using namespace std;
 
 
+
 int main(int argc, char** argv)
 {
-	 using namespace std::chrono;
+	using namespace std::chrono;
 
 	monitor *m;
 
@@ -45,18 +47,16 @@ int main(int argc, char** argv)
 
 	while( m->players_count() == 0 )
 	{
-		m->find();
+//		m->find();
 		m->show();
 	}
 	while(1) {
 		auto start = std::chrono::high_resolution_clock::now();
-		m->getFrame();
 		auto frame = std::chrono::high_resolution_clock::now();
 
-//		m->find();
 		m->track();
 		auto track = std::chrono::high_resolution_clock::now();
-//		m->show();
+		m->show();
 		auto show = std::chrono::high_resolution_clock::now();
 		m->send(true);
 		auto send = std::chrono::high_resolution_clock::now();
@@ -67,17 +67,17 @@ int main(int argc, char** argv)
 //
 //		std::cout << time_left << "\n";
 //
-		for(int i=0; i<=tracker::XTRAPLTN_RATE-1; i++){
-			if(delay<=0) continue;
-			int key = cv::waitKey(delay);
-			switch (key) {
-				case 27: {
-					std::cout << "esc key is pressed by user\n";
-					exit(0);
-				}
-			}
-			m->send(false);
-		}
+//		for(int i=0; i<=tracker::XTRAPLTN_RATE-1; i++){
+//			if(delay<=0) continue;
+//			int key = cv::waitKey(delay);
+//			switch (key) {
+//				case 27: {
+//					std::cout << "esc key is pressed by user\n";
+//					exit(0);
+//				}
+//			}
+//			m->send(false);
+//		}
 		auto extr = std::chrono::high_resolution_clock::now();
 
 		printf( "[%#7.4fms] f:%#7.4f t:%#7.4f sh:%#7.4f s:%#7.4f e:%#7.4f <%d>\n",
@@ -89,12 +89,12 @@ int main(int argc, char** argv)
 				(double)1000*duration_cast<duration<double>>(extr - send).count(),
 				delay);
 
-//		int key = cv::waitKey(1);
-//		switch (key) {
-//			case 27: {
-//				std::cout << "esc key is pressed by user\n";
-//				exit(0);
-//			}
-//		}
+		int key = cv::waitKey(1000);
+		switch (key) {
+			case 27: {
+				std::cout << "esc key is pressed by user\n";
+				exit(0);
+			}
+		}
 	}
 }

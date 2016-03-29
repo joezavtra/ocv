@@ -66,6 +66,8 @@ private:
 
 	cv::VideoCapture source;
 
+	cv::Mat imgBuff;
+
 	cv::Mat imgIn;
 	cv::Mat imgOver;
 	cv::Mat imgOut;
@@ -85,6 +87,10 @@ private:
 	char   fps_str[100] = "";
 
 	int    objcnt = 0;
+
+	std::mutex  frame_mutex_;
+	std::thread frame_thread_;
+	bool        finished_     = false;
 };
 
 #endif /* SRC_MONITOR_HPP_ */
